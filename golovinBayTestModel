@@ -170,7 +170,6 @@ Map.addLayer(maskedImg, HLSvisParams, 'land masked image', true); // adds masked
 
 
 // DIV procedure: creates a proxy image that helps minimize the bias of the spectral values due to the water column during classification and bathymetry procedures
-
 function kernel(img) {
     var boxcar = ee.Kernel.square({ // generates a square-shaped boolean kernel.
         radius: 2, 
@@ -271,9 +270,9 @@ Map.addLayer(maskedWaterDEM, {}, 'DEM no land', false);
 
 // DO WE WANT TO LEAVE THIS IN HERE?
 var DEMhistogram = ui.Chart.image.histogram(compositeImage, golovinGeom, 30);
-print(DEMhistogram);
+print(DEMhistogram, 'DEM histogram');
 var maskedhist = ui.Chart.image.histogram(maskedDEM, golovinGeom, 30);
-print(maskedhist);
+print(maskedhist, 'masked DEM histogram');
 
 var points = maskedWaterDEM.sample({
   region: maskedImg.geometry(), 
