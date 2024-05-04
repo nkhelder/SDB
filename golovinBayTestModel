@@ -73,7 +73,14 @@ var golovinBay = ee.ImageCollection("projects/uaf-coastal-mapping/assets/USACE_A
 
 // Section 1: loading in the data
 
-// Load in your DEM (topobathy data), filtering by the region of interest (ROI)
+// define your study area
+var golovinGeom = ee.Geometry.Polygon(
+        [[[-163.46897712147512, 64.71290872669046],
+          [-163.46897712147512, 64.43223975287069],
+          [-162.79469123280327, 64.43223975287069],
+          [-162.79469123280327, 64.71290872669046]]], null, false);
+
+// Load in your DEM (topobathy data), filtering by the region of interest (study area)
 var golovinBay = ee.ImageCollection("projects/uaf-coastal-mapping/assets/USACE_AK_DEM_Mosaic")
   .filterBounds(golovinGeom);
   
