@@ -135,7 +135,6 @@ var HLSvisParams = {
   max:0.18,
 };
 
-
 Map.addLayer(HLS, HLSvisParams, 'HLS RGB bands', false);
 Map.addLayer(masked, HLSvisParams, 'Masked HLS', true)
 
@@ -147,6 +146,7 @@ Map.addLayer(maskedImg, HLSvisParams, 'HLS: masked first image', false)
 // Section 2: Preprocessing Functions
 
 // Manually draw your own geometries used for training the water extraction model
+
 var landFeature = ee.Feature(land, {'class': 0});
 var waterFeature = ee.Feature(water, {'class': 1});
 
