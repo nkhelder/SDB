@@ -70,10 +70,9 @@ var golovinBay = ee.ImageCollection("projects/uaf-coastal-mapping/assets/USACE_A
           [-163.046835912961, 64.60459398919726],
           [-163.0384245054903, 64.60120729692738]]]);
 /***** End of imports. If edited, may not auto-convert in the playground. *****/
-
 // Section 1: loading in the data
 
-// define your study area
+// Define your study area
 var golovinGeom = ee.Geometry.Polygon(
         [[[-163.46897712147512, 64.71290872669046],
           [-163.46897712147512, 64.43223975287069],
@@ -109,13 +108,13 @@ var HLS = ee.ImageCollection("NASA/HLS/HLSL30/v002")
   .filter(ee.Filter.lt('CLOUD_COVERAGE', 30));
 
 // Find the least cloudy image in the HLS image collection
-// look through the objects in the HLS collection and find the object with the lowest cloud coverage score that also fills your region of interest
+// Look through the objects in the HLS collection and find the object with the lowest cloud coverage score that also fills your region of interest
 print(HLS, 'HLS: image collection');
 var imageList = HLS.toList(HLS.size());
 var firstImage = ee.Image(imageList.get(0));
 
-// cloud mask function:
-// the HLS product uses the FMask algorithm 
+// Cloud mask function:
+// The HLS product uses the FMask algorithm 
 function maskHSL(image) {
   // Bit 0 - Fill
   // Bit 1 - Dilated Cloud
@@ -140,23 +139,23 @@ var HLSvisParams = {
 Map.addLayer(HLS, HLSvisParams, 'HLS RGB bands', false);
 Map.addLayer(masked, HLSvisParams, 'Masked HLS', true)
 
-// apply cloud mask to the least cloudy image in the collection that you found above
+// Apply cloud mask to the least cloudy image in the collection that you found above
 var maskedImg = maskHSL(firstImage);
 Map.addLayer(maskedImg, HLSvisParams, 'HLS: masked first image', false)
 
 
 // Section 2: Preprocessing Functions
 
-// manually draw your own geometries used for training the water extraction model
+// Manually draw your own geometries used for training the water extraction model
 var landFeature = ee.Feature(land, {'class': 0});
 var waterFeature = ee.Feature(water, {'class': 1});
 
-// create land and water feature collections then merge into a single collection
+// Create land and water feature collections then merge into a single collection
 var landCollection = ee.FeatureCollection([landFeature]);
 var waterCollection = ee.FeatureCollection([waterFeature]);
 var trainingCollection = landCollection.merge(waterCollection);
 
-// land mask function: uses the land and water geometries to mask land and classify water using the Modified Normalized Difference Water Index (MNDWI)
+// Land mask function: uses the land and water geometries to mask land and classify water using the Modified Normalized Difference Water Index (MNDWI)
 function landmask(img) {
     // MNDWI uses SWIR1(B6) and green(B3) spectral bands, these bands could be different depending on the satellite imagery you use 
     // MNDWI = (Green - SWIR) / (Green + SWIR)
@@ -170,7 +169,7 @@ function landmask(img) {
     return img.updateMask(mask);
 }
 
-// apply the land masking function to the image you chose above from the HLS data
+// Apply the land masking function to the image you chose above from the HLS data
 maskedImg = landmask(maskedImg); 
 Map.addLayer(maskedImg, HLSvisParams, 'land masked image', true); // adds masked image to the map
 
@@ -191,22 +190,22 @@ function makePositive(img) { // performs conditional replacement of values to en
 }
 
 // div function: performs a series of operations to calculate depth-invariant indices for different band combinations.
-// involves logarithmic transformations, covariance calculation, and mathematical operations on image bands.
+// Involves logarithmic transformations, covariance calculation, and mathematical operations on image bands.
 function div(img) { 
     var band1 = ee.List(['B2', 'B3', 'B4', 'B2', 'B3']); 
     var band2 = ee.List(['B4', 'B4', 'B3', 'B3', 'B2']); 
     var nband = ee.List(['B2B4', 'B3B4', 'B4B3', 'B2B3', 'B3B2']); 
 
-  // iterate over the above band combinations performing logarithmic transformations and  calculating the covariance, attenuation coefficient ratio, and the depth-invariant index for the band pair
+  // Iterate over the above band combinations performing logarithmic transformations and  calculating the covariance, attenuation coefficient ratio, and the depth-invariant index for the band pair
     for (var i = 0; i < 5; i += 1) { 
         var x = band1.get(i); 
         var y = band2.get(i);
         var z = nband.get(i);
         
-        // logarithmic transformation
+        // Logarithmic transformation
         var imageLog = img.select([x, y]).log(); 
 
-        // calculate the covariance of the logarithmically transformed bands
+        // Calculate the covariance of the logarithmically transformed bands
         var covariance = imageLog.toArray().reduceRegion({ 
             reducer: ee.Reducer.covariance(),
             geometry: golovinGeom, 
@@ -215,17 +214,17 @@ function div(img) {
             bestEffort: true,
         });
 
-        // extract the variances of each band (var1 and var2) and the covariance between them (covar)
+        // Extract the variances of each band (var1 and var2) and the covariance between them (covar)
         var covarMatrix = ee.Array(covariance.get('array'));
         var var1 = covarMatrix.get([0, 0]);
         var var2 = covarMatrix.get([1, 1]);
         var covar = covarMatrix.get([0, 1]);
         
-        // calculate an attenuation coefficient ratio
+        // Calculate an attenuation coefficient ratio
         var a = var1.subtract(var2).divide(covar.multiply(2));
         var attenCoeffRatio = a.add(((a.pow(2)).add(1)).sqrt());
 
-        // calculate a depth-invariant index for the band pair 
+        // Calculate a depth-invariant index for the band pair 
         // This calculation aims to normalize the effect of depth in underwater imaging
         var depthInvariantIndex = img.expression(
             'image1 - (image2 * coeff)', {
@@ -234,7 +233,7 @@ function div(img) {
                 'coeff': attenCoeffRatio
             });
 
-        // concatenate the DIV index for each band pair to the original image as a new band, named according to the nband list
+        // Concatenate the DIV index for each band pair to the original image as a new band, named according to the nband list
         img = ee.Image.cat([img, depthInvariantIndex.select([x], [
             z
         ])]);
@@ -258,13 +257,13 @@ Map.addLayer(divImg, vivVisParams, 'divImg', false);
 
 var compositeImage = golovinBay.mosaic();
 
-//filter out any filler data points from DEM
+// Filter out any filler data points from DEM
 function maskDEM(image) {
   var fillerMask = image.select('b1').gte(-3.4e38);
   return image.updateMask(fillerMask)
 }
 
-//filter out the land from your DEM
+// Filter out the land from your DEM
 function maskLandDEM(image) {
   var landMask = image.select('b1').lte(1);
   return image.updateMask(landMask)
@@ -289,7 +288,7 @@ var points = maskedWaterDEM.sample({
   geometries: true
 });
 
-// split training and validation data for the bathymetry.
+// Split training and validation data for the bathymetry.
 points = points.randomColumn();
 var depthT = points.filter(ee.Filter.lte('random', 0.7));//training data: filters out the values just created by .randomColumn to get values less than or equal to .7 (70%)
 var depthV = points.filter(ee.Filter.gt('random', 0.7)); // validation data: filters out values greater than 0.7 (30%)
@@ -302,19 +301,19 @@ Map.addLayer(depthV, {
 }, 'Depth Validation', false); 
 
 
-// function to convert point data to a raster format for easier processing in regression analysis
+// Function to convert point data to a raster format for easier processing in regression analysis
 function vector2image(vector) {
-    // filter out features in the vector data where the 'b1' property (representing depth) is null
-    // this ensures that only valid depth measurements are included in the rasterization process
+    // Filter out features in the vector data where the 'b1' property (representing depth) is null
+    // This ensures that only valid depth measurements are included in the rasterization process
     var rasterisedVectorData = vector
         .filter(ee.Filter.neq('b1',
-            null)) // filter out Null depth values. from the rasterized image
+            null)) // Filter out Null depth values. from the rasterized image
         .reduceToImage({ 
-            properties: ['b1'], // property to include in the raster image: here, 'b1' represents depth values
+            properties: ['b1'], // Property to include in the raster image: here, 'b1' represents depth values
             reducer: ee.Reducer.mean() // The choice of reducer depends on how you want to aggregate the data (e.g., taking the average, the sum, the maximum value, etc.).
         });
-    // the resulting raster image has pixel values that represent the average depth measured at each location,
-    // providing a consistent, single measurement per pixel for use in further analysis.
+    // The resulting raster image has pixel values that represent the average depth measured at each location,
+    // Providing a consistent, single measurement per pixel for use in further analysis.
     return (rasterisedVectorData); 
 } 
 
@@ -331,30 +330,30 @@ var depthVImage = vector2image(depthV)
 
 // rfbathymetry: performs bathymetry prediction, using the Random Forest regression
 function rfbathymetry(img) {
-    // sample the input image using the depth training dataset
+    // Sample the input image using the depth training dataset
     var training = img.sampleRegions({ 
         collection: depthT,
         scale: 3 
     });
 
-    // initialize a Random Forest classifier with 15 decision trees to perform regression
+    // Initialize a Random Forest classifier with 15 decision trees to perform regression
     var regclass = ee.Classifier.smileRandomForest(15)
         .train(training, 'b1'); // train the classifier using the 'b1'(depth) property as the label 
 
-    // apply the trained classifier to the image to predict bathymetric depths
+    // Apply the trained classifier to the image to predict bathymetric depths
     var bathyClass = img
         .classify(regclass.setOutputMode('REGRESSION')).rename(
             'b1'); 
             
-    // clip the predicted depth values to the geometry of the validation data
+    // Clip the predicted depth values to the geometry of the validation data
     // sdbEstimate will contain the depth estimate from bathyClass
     var sdbEstimate = bathyClass.clip(depthV); 
     
 
-    // concatenate estimated and validation depth data for comparison
+    // Concatenate estimated and validation depth data for comparison
     var imageI = ee.Image.cat([sdbEstimate, depthVImage]); //concatenates sdbEstimate and depthVImage into a single image where each pixel has two bands: one from sdbEstimate (the estimated depth from satellite data) and the other from depthVImage (the in-situ or observed depth data). This operation facilitates direct comparison between the estimated and observed depths.
     
-    // calculate the covariance between estimated and observed depths
+    // Calculate the covariance between estimated and observed depths
     var covariance = imageI.toArray().reduceRegion({
         reducer: ee.Reducer.covariance(),
         geometry: depthV,
@@ -364,16 +363,16 @@ function rfbathymetry(img) {
     });  
     var covarMatrix = ee.Array(covariance.get('array')); 
     
-    // convert the covariance output to an array and calculate the R² value
+    // Convert the covariance output to an array and calculate the R² value
     var rSqr = covarMatrix.get([0, 1]).pow(2) 
         .divide(covarMatrix.get([0, 0])
             .multiply(covarMatrix.get([1, 1])));
             
-    // calculate the deviation (squared difference) between validation and estimated depths
+    // Calculate the deviation (squared difference) between validation and estimated depths
     var deviation = depthVImage.select('mean') 
         .subtract(sdbEstimate.select('b1')).pow(2);
 
-    // calculates the Root Mean Square Error (RMSE) from the deviation 
+    // Calculate the Root Mean Square Error (RMSE) from the deviation 
     var rmse = ee.Number(deviation.reduceRegion({
             reducer: ee.Reducer.mean(),
             geometry: depthV,
@@ -383,17 +382,17 @@ function rfbathymetry(img) {
         }).get('mean'))
         .sqrt();
         
-    // output R² and RMSE values to the console for evaluation of model performance
+    // Output R² and RMSE values to the console for evaluation of model performance
     print('R²', rSqr, 'RMSE', rmse); 
 
-    // return the classified image with predicted depth values
+    // Return the classified image with predicted depth values
     return bathyClass; 
 }
 
 var clippedMask = maskedImg.clip(golovinGeom);
 Map.addLayer(clippedMask, HLSvisParams, 'clipped mask');
 
-var rfBathymetry = rfbathymetry(maskedImg); // call rfbathymetry on divImg
+var rfBathymetry = rfbathymetry(maskedImg); 
 var clippedBathymetry = rfbathymetry(clippedMask);
 
 var bathyVis = {
@@ -401,38 +400,38 @@ var bathyVis = {
     max: 1,
     palette: ['084594', '2171b5', '4292c6', '6baed6',
         '9ecae1', 'c6dbef', 'deebf7', 'f7fbff'
-    ]// color gradient where darker blues represent deeper areas and lighter blues represent shallower areas
+    ]// Color gradient where darker blues represent deeper areas and lighter blues represent shallower areas
 };
 Map.addLayer(rfBathymetry, bathyVis, 'bathymetry');
 Map.addLayer(clippedBathymetry, bathyVis, 'clipped bathymetry')
 
 
-// section 4: visualizing the data for comparison and error analysis
+// Section 4: visualizing the data for comparison and error analysis
 
-// add bathymetry and digital elevation model (DEM) layers to the map for visual comparison
+// Add bathymetry and digital elevation model (DEM) layers to the map for visual comparison
 Map.addLayer(rfBathymetry, bathyVis, 'bathymetry for visualization');
 Map.addLayer(maskedWaterDEM, bathyVis, 'DEM for visualization');
   
-// generate and print histograms for bathymetry and DEM to analyze the distribution of values
+// Generate and print histograms for bathymetry and DEM to analyze the distribution of values
 var bathyHist = ui.Chart.image.histogram(rfBathymetry, golovinGeom, 30);
 var topoHist = ui.Chart.image.histogram(maskedWaterDEM, golovinGeom, 30);
 print(bathyHist, 'Bathymetry Histogram');
 print(topoHist, 'Topobathy Histogram');
   
-// calculate and visualize the pixel-by-pixel difference between DEM and SDB images to identify potential underestimations or overestimations in the model
+// Calculate and visualize the pixel-by-pixel difference between DEM and SDB images to identify potential underestimations or overestimations in the model
 var differenceImage = maskedWaterDEM.subtract(rfBathymetry);
 var errVisParams = {
   min: -5,
   max: 5,    
-  palette: ['red', 'white', 'blue']  // negative values in blue, positive in red
+  palette: ['red', 'white', 'blue']  // Negative values in blue, positive in red
 };
 Map.addLayer(differenceImage, errVisParams, 'Difference Image');
 
-// create a histogram to analyze the distribution of differences
+// Create a histogram to analyze the distribution of differences
 var differenceHistogram = ui.Chart.image.histogram(differenceImage, golovinGeom, 30);
 print(differenceHistogram);
 
-// scatter plot comparing DEM and SDB to examine the correlation between predicted vs actual depths 
+// Scatter plot comparing DEM and SDB to examine the correlation between predicted vs actual depths 
 var image1 = maskedWaterDEM.select('b1');
 var image2 = rfBathymetry.select('b1');
 
