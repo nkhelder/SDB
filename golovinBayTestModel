@@ -398,13 +398,13 @@ var bathyVis = {
     ]// Color gradient where darker blues represent deeper areas and lighter blues represent shallower areas
 };
 Map.addLayer(rfBathymetry, bathyVis, 'bathymetry');
-Map.addLayer(clippedBathymetry, bathyVis, 'clipped bathymetry')
+Map.addLayer(clippedBathymetry, bathyVis, 'clipped bathymetry');
 
 
 // Section 4: visualizing the data for comparison and error analysis
 
 // Add bathymetry and digital elevation model (DEM) layers to the map for visual comparison
-Map.addLayer(rfBathymetry, bathyVis, 'bathymetry for visualization');
+Map.addLayer(clippedBathymetry, bathyVis, 'bathymetry for visualization');
 Map.addLayer(maskedWaterDEM, bathyVis, 'DEM for visualization');
   
 // Generate and print histograms for bathymetry and DEM to analyze the distribution of values
