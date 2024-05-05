@@ -76,7 +76,7 @@ var golovinGeom = ee.Geometry.Polygon(
 // Load in your DEM (topobathy data), filtering by the region of interest (study area)
 var golovinBay = ee.ImageCollection("projects/uaf-coastal-mapping/assets/USACE_AK_DEM_Mosaic")
   .filterBounds(golovinGeom);
-  
+
 // Set visualization parameters for the DEM data
 var golVisParams = {
     bands: ['b1'], 
@@ -340,7 +340,7 @@ function rfbathymetry(img) {
     
 
     // Concatenate estimated and validation depth data for comparison
-    var imageI = ee.Image.cat([sdbEstimate, depthVImage]); //concatenates sdbEstimate and depthVImage into a single image where each pixel has two bands: one from sdbEstimate (the estimated depth from satellite data) and the other from depthVImage (the in-situ or observed depth data). This operation facilitates direct comparison between the estimated and observed depths.
+    var imageI = ee.Image.cat([sdbEstimate, depthVImage]); //concatenates sdbEstimate and depthVImage into a single image where each pixel has two bands: one from sdbEstimate (the estimated depth from satellite data) and the other from depthVImage (the observed depth data). This operation facilitates direct comparison between the estimated and observed depths.
     
     // Calculate the covariance between estimated and observed depths
     var covariance = imageI.toArray().reduceRegion({
