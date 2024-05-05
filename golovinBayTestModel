@@ -13,10 +13,7 @@ var golovinBay = ee.ImageCollection("projects/uaf-coastal-mapping/assets/USACE_A
           [-163.46897712147512, 64.43223975287069],
           [-162.79469123280327, 64.43223975287069],
           [-162.79469123280327, 64.71290872669046]]], null, false),
-    water = 
-    /* color: #d63000 */
-    /* shown: false */
-    ee.Geometry.MultiLineString(
+    water = /* color: #d63000 */ee.Geometry.MultiLineString(
         [[[-163.20979300141863, 64.57491197030333],
           [-163.14524832368426, 64.59465627275598],
           [-163.20704641938738, 64.56960509024721],
@@ -45,10 +42,7 @@ var golovinBay = ee.ImageCollection("projects/uaf-coastal-mapping/assets/USACE_A
           [-163.01753225923113, 64.40698486438475],
           [-162.95848074555926, 64.43248183681625],
           [-162.98594656587176, 64.41232340146885]]]),
-    land = 
-    /* color: #ffc82d */
-    /* shown: false */
-    ee.Geometry.MultiLineString(
+    land = /* color: #ffc82d */ee.Geometry.MultiLineString(
         [[[-163.3784757125088, 64.51976626495886],
           [-163.40130667564355, 64.53143186223527],
           [-163.38002066490137, 64.52286773299792],
@@ -146,7 +140,7 @@ Map.addLayer(maskedImg, HLSvisParams, 'HLS: masked first image', false)
 // Section 2: Preprocessing Functions
 
 // Manually draw your own geometries used for training the water extraction model
-
+// Turn both geometries into feature collection and give them a class property
 var landFeature = ee.Feature(land, {'class': 0});
 var waterFeature = ee.Feature(water, {'class': 1});
 
@@ -253,7 +247,7 @@ var vivVisParams = {
 Map.addLayer(divImg, vivVisParams, 'divImg', false);
 
 
-// Section 4: Bathymetry using Random Forests regression
+// Section 3: Bathymetry using Random Forests regression
 
 var compositeImage = golovinBay.mosaic();
 
