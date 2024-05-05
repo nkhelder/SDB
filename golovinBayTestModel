@@ -169,7 +169,8 @@ Map.addLayer(maskedImg, HLSvisParams, 'land masked image', true); // adds masked
 
 
 
-// DIV procedure: creates a proxy image that helps minimize the bias of the spectral values due to the water column during classification and bathymetry procedures
+// DIV procedure: creates a proxy image that helps minimize the bias of the spectral values due to the water column during classification and
+// bathymetry procedures
 function kernel(img) {
     var boxcar = ee.Kernel.square({ // generates a square-shaped boolean kernel.
         radius: 2, 
@@ -190,7 +191,8 @@ function div(img) {
     var band2 = ee.List(['B4', 'B4', 'B3', 'B3', 'B2']); 
     var nband = ee.List(['B2B4', 'B3B4', 'B4B3', 'B2B3', 'B3B2']); 
 
-  // Iterate over the above band combinations performing logarithmic transformations and  calculating the covariance, attenuation coefficient ratio, and the depth-invariant index for the band pair
+  // Iterate over the above band combinations performing logarithmic transformations and  calculating the covariance, attenuation coefficient ratio, and 
+  // the depth-invariant index for the band pair
     for (var i = 0; i < 5; i += 1) { 
         var x = band1.get(i); 
         var y = band2.get(i);
@@ -268,12 +270,6 @@ Map.addLayer(maskedDEM, {}, 'DEM no filler', false);
 var maskedWaterDEM = maskLandDEM(maskedDEM);
 Map.addLayer(maskedWaterDEM, {}, 'DEM no land', false);
 
-// DO WE WANT TO LEAVE THIS IN HERE?
-var DEMhistogram = ui.Chart.image.histogram(compositeImage, golovinGeom, 30);
-print(DEMhistogram, 'DEM histogram');
-var maskedhist = ui.Chart.image.histogram(maskedDEM, golovinGeom, 30);
-print(maskedhist, 'masked DEM histogram');
-
 var points = maskedWaterDEM.sample({
   region: maskedImg.geometry(), 
   scale: 1, // match the DEM resolution
@@ -310,7 +306,6 @@ function vector2image(vector) {
     // Providing a consistent, single measurement per pixel for use in further analysis.
     return (rasterisedVectorData); 
 } 
-
 
 var depthTImage = vector2image(depthT) 
     .aside(Map.addLayer, {
