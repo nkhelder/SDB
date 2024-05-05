@@ -408,7 +408,7 @@ Map.addLayer(clippedBathymetry, bathyVis, 'bathymetry for visualization');
 Map.addLayer(maskedWaterDEM, bathyVis, 'DEM for visualization');
   
 // Generate and print histograms for bathymetry and DEM to analyze the distribution of values
-var bathyHist = ui.Chart.image.histogram(rfBathymetry, golovinGeom, 30);
+var bathyHist = ui.Chart.image.histogram(clippedBathymetry, golovinGeom, 30);
 var topoHist = ui.Chart.image.histogram(maskedWaterDEM, golovinGeom, 30);
 print(bathyHist, 'Bathymetry Histogram');
 print(topoHist, 'Topobathy Histogram');
@@ -424,7 +424,7 @@ Map.addLayer(differenceImage, errVisParams, 'Difference Image');
 
 // Create a histogram to analyze the distribution of differences
 var differenceHistogram = ui.Chart.image.histogram(differenceImage, golovinGeom, 30);
-print(differenceHistogram);
+print(differenceHistogram, 'Difference Histogram');
 
 // Scatter plot comparing DEM and SDB to examine the correlation between predicted vs actual depths 
 var image1 = maskedWaterDEM.select('b1');
